@@ -1,0 +1,220 @@
+# Production values for nexus-cyberagent
+# Override default values with production-specific configuration
+
+## Image configuration
+image:
+  api:
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  worker:
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+## Replica configuration for production
+replicaCount:
+  api: 5
+  worker: 10
+
+## Resource limits for production workloads
+resources:
+  api:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+  worker:
+    limits:
+      cpu: 8000m
+      memory: 16Gi
+    requests:
+      cpu: 4000m
+      memory: 8Gi
+
+## Aggressive autoscaling for production
+autoscaling:
+  api:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+  worker:
+    enabled: true
+    minReplicas: 10
+    maxReplicas: 50
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+
+## Production ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+  hosts:
+    - host: nexus-prod.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: nexus-prod-tls
+      hosts:
+        - nexus-prod.example.com
+
+## PostgreSQL production configuration
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      size: 1Ti
+      storageClass: "fast-ssd-prod"
+    resources:
+      limits:
+        cpu: 8000m
+        memory: 16Gi
+      requests:
+        cpu: 4000m
+        memory: 8Gi
+  readReplicas:
+    replicaCount: 3
+    persistence:
+      size: 1Ti
+    resources:
+      limits:
+        cpu: 4000m
+        memory: 8Gi
+      requests:
+        cpu: 2000m
+        memory: 4Gi
+
+## Redis production configuration
+redis:
+  enabled: true
+  master:
+    persistence:
+      size: 100Gi
+      storageClass: "fast-ssd-prod"
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+  replica:
+    replicaCount: 3
+    persistence:
+      size: 100Gi
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+
+## Persistent volumes for production
+persistence:
+  malwareSamples:
+    enabled: true
+    storageClass: "fast-ssd-prod"
+    size: 5Ti
+    accessMode: ReadWriteMany
+
+## Stricter health checks for production
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 2
+  successThreshold: 2
+
+## Production monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: true
+
+## Network policies enabled in production
+networkPolicy:
+  enabled: true
+
+## Pod disruption budget for high availability
+podDisruptionBudget:
+  enabled: true
+  api:
+    minAvailable: 3
+  worker:
+    minAvailable: 5
+
+## Production backup configuration
+backup:
+  enabled: true
+  schedule: "0 */6 * * *"  # Every 6 hours
+  retention: 90  # days
+  storageClass: "standard-backup"
+  size: 500Gi
+
+## Affinity for spreading pods across nodes and zones
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app
+              operator: In
+              values:
+                - nexus-api
+                - nexus-worker
+        topologyKey: kubernetes.io/hostname
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - nexus-api
+                  - nexus-worker
+          topologyKey: topology.kubernetes.io/zone
+
+## Node selector for production nodes
+nodeSelector:
+  workload: production
+  performance: high
+
+## Tolerations for dedicated nodes
+tolerations:
+  - key: "workload"
+    operator: "Equal"
+    value: "production"
+    effect: "NoSchedule"
+
+## Priority class for production workloads
+priorityClassName: "high-priority"

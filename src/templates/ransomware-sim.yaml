@@ -1,0 +1,336 @@
+# Ransomware Simulation Workflow
+# Test incident response capabilities against ransomware attack
+
+name: "Ransomware Incident Simulation"
+description: "Simulate ransomware attack for incident response training"
+category: "red_team"
+difficulty: "advanced"
+estimated_duration: "2-4 hours"
+requires_authorization: true
+warning: "This workflow will encrypt test files - ensure proper authorization"
+
+# Simulation parameters
+metadata:
+  simulation_mode: true  # Safe mode - only test files
+  kill_date: "{{KILL_DATE}}"
+  auto_restore: true  # Restore encrypted files after simulation
+  backup_before_encrypt: true
+
+# Targeting
+targets:
+  - type: "test_environment"
+    network: "{{TEST_NETWORK}}"
+    test_directory: "{{TEST_FILE_PATH}}"  # Only encrypt files here
+
+# Ransomware characteristics
+ransomware_config:
+  family: "custom_test"
+  encryption:
+    algorithm: "AES-256-GCM"
+    key_size: 256
+    asymmetric: "RSA-4096"  # For key encryption
+
+  file_targets:
+    extensions: [
+      ".docx", ".xlsx", ".pdf", ".txt",
+      ".jpg", ".png", ".mp4", ".zip",
+      ".ppt", ".db", ".sql", ".bak"
+    ]
+    exclude_paths: [
+      "C:\\Windows",
+      "C:\\Program Files",
+      "/etc", "/bin", "/usr"
+    ]
+    max_file_size: "100MB"
+
+  ransom_note:
+    file_name: "READ_ME_NOW.txt"
+    content: |
+      !!! SECURITY INCIDENT SIMULATION !!!
+
+      This is a SIMULATED ransomware attack for incident response training.
+      Your files have been encrypted for testing purposes.
+
+      Simulation ID: {{SIMULATION_ID}}
+      Encrypted: {{ENCRYPTED_COUNT}} files
+
+      TO RESTORE YOUR FILES:
+      Contact the security team with simulation ID: {{SIMULATION_ID}}
+
+      This is NOT a real attack. This is a security drill.
+
+# Attack stages
+stages:
+  # ============================================================================
+  # STAGE 1: Initial Compromise
+  # ============================================================================
+  - stage: 1
+    name: "Initial Compromise"
+    tactic: "TA0001"
+    description: "Simulate initial ransomware delivery"
+    tasks:
+      - name: "Phishing Simulation"
+        type: "simulated_phishing"
+        payload_type: "dropper"
+        delivery: "email"
+        attachment: "invoice.docx"
+        success_criteria: "payload_executed"
+
+      - name: "Deploy Ransomware Payload"
+        type: "payload_execution"
+        binary: "ransomware_test.exe"
+        location: "{{TEMP_DIR}}"
+        launch_method: "macro"
+
+  # ============================================================================
+  # STAGE 2: Defense Evasion
+  # ============================================================================
+  - stage: 2
+    name: "Defense Evasion"
+    tactic: "TA0005"
+    description: "Evade detection mechanisms"
+    depends_on: "stage_1"
+    tasks:
+      - name: "Disable Windows Defender"
+        type: "defense_evasion"
+        technique: "T1562.001"  # Disable or Modify Tools
+        command: "Set-MpPreference -DisableRealtimeMonitoring $true"
+        condition: "has_admin"
+        simulated: true  # Don't actually disable
+
+      - name: "Delete Shadow Copies"
+        type: "defense_evasion"
+        technique: "T1490"  # Inhibit System Recovery
+        command: "vssadmin delete shadows /all /quiet"
+        simulated: true  # Don't actually delete
+
+      - name: "Clear Event Logs"
+        type: "defense_evasion"
+        technique: "T1070.001"  # Clear Windows Event Logs
+        command: "wevtutil cl System"
+        simulated: true  # Don't actually clear
+
+  # ============================================================================
+  # STAGE 3: Discovery
+  # ============================================================================
+  - stage: 3
+    name: "Target Discovery"
+    tactic: "TA0007"
+    description: "Find files to encrypt"
+    depends_on: "stage_2"
+    tasks:
+      - name: "Enumerate Local Drives"
+        type: "discovery"
+        technique: "T1082"  # System Information Discovery
+        command: "Get-PSDrive -PSProvider FileSystem"
+        expected_output: "drive_list"
+
+      - name: "Enumerate Network Shares"
+        type: "discovery"
+        technique: "T1135"  # Network Share Discovery
+        command: "net view /all"
+        expected_output: "network_shares"
+
+      - name: "Build Target File List"
+        type: "enumeration"
+        include_extensions: [".docx", ".xlsx", ".pdf"]
+        exclude_paths: ["C:\\Windows"]
+        max_files: 1000  # Limit for simulation
+        expected_output: "target_files"
+
+  # ============================================================================
+  # STAGE 4: Lateral Movement (Optional)
+  # ============================================================================
+  - stage: 4
+    name: "Lateral Propagation"
+    tactic: "TA0008"
+    description: "Spread to other systems"
+    depends_on: "stage_3"
+    optional: true
+    tasks:
+      - name: "SMB Propagation"
+        type: "lateral_movement"
+        technique: "T1021.002"  # SMB/Windows Admin Shares
+        target: "{{NETWORK_SHARES}}"
+        credentials: "{{HARVESTED_CREDS}}"
+        deploy_ransomware: true
+        max_targets: 5  # Limit spread
+
+  # ============================================================================
+  # STAGE 5: Encryption
+  # ============================================================================
+  - stage: 5
+    name: "File Encryption"
+    tactic: "TA0040"  # Impact
+    description: "Encrypt target files"
+    depends_on: ["stage_3", "stage_4"]
+    tasks:
+      - name: "Backup Original Files"
+        type: "safety_backup"
+        backup_location: "{{BACKUP_DIR}}"
+        compression: true
+        note: "Safety measure - allows restoration"
+
+      - name: "Generate Encryption Keys"
+        type: "key_generation"
+        algorithm: "AES-256"
+        key_derivation: "PBKDF2"
+        iterations: 100000
+
+      - name: "Encrypt Files"
+        type: "impact"
+        technique: "T1486"  # Data Encrypted for Impact
+        encryption_method: "stream_cipher"
+        parallel_threads: 4
+        rate_limit: "10_files_per_second"  # Slow for detection testing
+        append_extension: ".encrypted"
+
+        # Safety controls
+        test_mode: true
+        max_files: 100
+        max_size_total: "1GB"
+
+      - name: "Secure Delete Original Keys"
+        type: "cleanup"
+        method: "overwrite_7_passes"
+        note: "In real ransomware, this prevents decryption"
+
+  # ============================================================================
+  # STAGE 6: Ransom Demand
+  # ============================================================================
+  - stage: 6
+    name: "Ransom Notification"
+    tactic: "TA0040"
+    description: "Display ransom note"
+    depends_on: "stage_5"
+    tasks:
+      - name: "Drop Ransom Notes"
+        type: "impact"
+        technique: "T1491"  # Defacement
+        file_name: "READ_ME_NOW.txt"
+        locations:
+          - "Desktop"
+          - "Documents"
+          - "C:\\"
+          - "{{ENCRYPTED_DIRECTORIES}}"
+
+      - name: "Change Wallpaper"
+        type: "impact"
+        action: "set_wallpaper"
+        image: "ransom_note.png"
+
+      - name: "Display Popup"
+        type: "notification"
+        title: "SIMULATION: Your Files Are Encrypted"
+        message: "This is a security drill. Contact IT security."
+        style: "warning"
+
+  # ============================================================================
+  # STAGE 7: Command & Control
+  # ============================================================================
+  - stage: 7
+    name: "C2 Communication"
+    tactic: "TA0011"
+    description: "Report infection status to C2"
+    depends_on: "stage_6"
+    tasks:
+      - name: "Beacon to C2"
+        type: "c2_communication"
+        technique: "T1071.001"  # Web Protocols
+        c2_server: "{{C2_SERVER}}"
+        protocol: "https"
+        data:
+          - "victim_id"
+          - "encryption_complete"
+          - "files_encrypted"
+          - "bitcoin_address"
+
+      - name: "Request Payment"
+        type: "simulated_payment"
+        amount: "{{RANSOM_AMOUNT}}"
+        currency: "bitcoin"
+        deadline: "72_hours"
+        note: "Simulated only - no real payment"
+
+# ============================================================================
+# Incident Response Triggers
+# ============================================================================
+detection_tests:
+  - name: "EDR Alert Test"
+    trigger: "encryption_start"
+    expected: "edr_should_alert"
+
+  - name: "SIEM Correlation Test"
+    trigger: "shadow_copy_deletion"
+    expected: "siem_should_correlate"
+
+  - name: "Network Monitoring Test"
+    trigger: "c2_beacon"
+    expected: "firewall_should_block"
+
+# ============================================================================
+# Automatic Restoration
+# ============================================================================
+cleanup:
+  auto_restore: true
+  restore_delay: "30_minutes"  # Allow IR team to respond
+
+  steps:
+    - name: "Decrypt All Files"
+      action: "restore_from_backup"
+      verify_integrity: true
+
+    - name: "Remove Ransom Notes"
+      action: "delete_files"
+      pattern: "READ_ME_NOW.txt"
+
+    - name: "Restore Wallpaper"
+      action: "reset_wallpaper"
+
+    - name: "Cleanup Artifacts"
+      action: "remove_payloads"
+      secure_delete: true
+
+# ============================================================================
+# Metrics & Reporting
+# ============================================================================
+reporting:
+  generate_report: true
+  format: ["html", "pdf"]
+
+  include:
+    - "infection_timeline"
+    - "files_encrypted"
+    - "detection_events"
+    - "ir_response_time"
+    - "effectiveness_score"
+
+  metrics:
+    - "time_to_detection"
+    - "time_to_containment"
+    - "time_to_eradication"
+    - "time_to_recovery"
+    - "files_encrypted_count"
+    - "backup_recovery_success"
+
+  recommendations:
+    - "Improve detection speed"
+    - "Enhance backup strategy"
+    - "Update incident response playbook"
+
+# ============================================================================
+# Safety Guarantees
+# ============================================================================
+safety:
+  simulation_id: "{{UNIQUE_ID}}"
+  backup_encryption_keys: true
+  backup_original_files: true
+  max_encryption_limit: 100  # files
+  test_environment_only: true
+  auto_restore_enabled: true
+  kill_switch: "{{KILL_SWITCH_URL}}"
+
+  abort_conditions:
+    - production_system_detected: true
+    - backup_failure: true
+    - no_authorization_token: true

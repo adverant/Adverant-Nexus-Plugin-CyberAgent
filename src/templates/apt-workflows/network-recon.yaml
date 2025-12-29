@@ -1,0 +1,111 @@
+# Network Reconnaissance Workflow
+# Automated network discovery and mapping
+
+name: "Network Reconnaissance"
+description: "Comprehensive network mapping and vulnerability discovery"
+category: "reconnaissance"
+difficulty: "beginner"
+estimated_duration: "30-60 minutes"
+
+# Targeting
+targets:
+  - type: "network_range"
+    cidr: "{{TARGET_NETWORK}}"
+
+# Objectives
+objectives:
+  - "Map network topology"
+  - "Discover live hosts"
+  - "Identify services and versions"
+  - "Detect vulnerabilities"
+  - "Map trust relationships"
+
+# Workflow stages
+stages:
+  - stage: 1
+    name: "Host Discovery"
+    description: "Identify live hosts on the network"
+    tasks:
+      - name: "ICMP Sweep"
+        type: "port_scan"
+        tool: "nmap"
+        command: "nmap -sn {{TARGET_NETWORK}}"
+        timeout: 300
+        expected_output: "live_hosts"
+
+      - name: "ARP Scan"
+        type: "network_scan"
+        tool: "arp-scan"
+        command: "arp-scan --interface={{INTERFACE}} {{TARGET_NETWORK}}"
+        timeout: 120
+        expected_output: "mac_addresses"
+
+  - stage: 2
+    name: "Service Discovery"
+    description: "Enumerate services on discovered hosts"
+    depends_on: "stage_1"
+    tasks:
+      - name: "Port Scan - Common Ports"
+        type: "port_scan"
+        tool: "nmap"
+        command: "nmap -sV -sC -p- --open {{DISCOVERED_HOSTS}}"
+        timeout: 1800
+        expected_output: "services"
+
+      - name: "Service Version Detection"
+        type: "fingerprinting"
+        tool: "nmap"
+        command: "nmap -sV --version-intensity 9 {{DISCOVERED_HOSTS}}"
+        timeout: 900
+        expected_output: "versions"
+
+  - stage: 3
+    name: "Vulnerability Scanning"
+    description: "Identify security vulnerabilities"
+    depends_on: "stage_2"
+    tasks:
+      - name: "Vulnerability Scan"
+        type: "vuln_scan"
+        tool: "nmap"
+        command: "nmap --script=vuln {{DISCOVERED_HOSTS}}"
+        timeout: 3600
+        expected_output: "vulnerabilities"
+
+      - name: "SMB Enumeration"
+        type: "smb_enum"
+        tool: "enum4linux"
+        command: "enum4linux -a {{TARGET_HOST}}"
+        condition: "port_445_open"
+        timeout: 300
+        expected_output: "smb_shares"
+
+  - stage: 4
+    name: "AI Analysis"
+    description: "MageAgent analyzes findings and recommends next steps"
+    depends_on: "stage_3"
+    tasks:
+      - name: "AI Threat Analysis"
+        type: "ai_analysis"
+        agent: "threat_analyst"
+        task: "Analyze discovered hosts and vulnerabilities"
+        context:
+          - "discovered_hosts"
+          - "services"
+          - "vulnerabilities"
+        expected_output: "attack_recommendations"
+
+# Safety controls
+safety:
+  max_scan_rate: 1000  # packets per second
+  respect_robots_txt: true
+  stop_on_ids_detection: true
+
+# Reporting
+reporting:
+  generate_report: true
+  format: "html"
+  include:
+    - "network_map"
+    - "vulnerability_summary"
+    - "attack_surface_analysis"
+    - "recommendations"

