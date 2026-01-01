@@ -1,0 +1,116 @@
+{
+  "name": "nexus-cyberagent",
+  "displayName": "CyberAgent - AI Security Operations Center",
+  "version": "1.0.0",
+  "description": "AI-powered cybersecurity operations with threat detection, vulnerability assessment, incident response, and compliance monitoring. Multi-agent security intelligence.",
+  "developer": {
+    "name": "Adverant",
+    "url": "https://adverant.ai",
+    "email": "plugins@adverant.ai",
+    "verified": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adverant/Adverant-Nexus-Plugin-CyberAgent"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "cybersecurity",
+    "threat-detection",
+    "vulnerability-assessment",
+    "incident-response",
+    "soc",
+    "compliance",
+    "security"
+  ],
+  "nexus": {
+    "minVersion": "1.0.0",
+    "executionMode": "hardened_docker",
+    "isolationLevel": 3,
+    "capabilities": [
+      "threat-detection",
+      "vulnerability-scanning",
+      "incident-response",
+      "compliance-monitoring",
+      "log-analysis",
+      "threat-intelligence"
+    ],
+    "permissions": [
+      "network:external",
+      "filesystem:temp",
+      "service:mageagent",
+      "service:graphrag"
+    ],
+    "entrypoint": "dist/index.js",
+    "healthCheck": "/health",
+    "readinessCheck": "/ready",
+    "livenessCheck": "/live"
+  },
+  "resources": {
+    "cpuMillicores": 2000,
+    "memoryMB": 4096,
+    "diskGB": 20,
+    "timeoutMs": 600000,
+    "maxConcurrentJobs": 10
+  },
+  "api": {
+    "version": "v1",
+    "basePath": "/api/v1/cyberagent",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/scan",
+        "description": "Run security scan"
+      },
+      {
+        "method": "GET",
+        "path": "/threats",
+        "description": "List detected threats"
+      },
+      {
+        "method": "POST",
+        "path": "/incidents",
+        "description": "Create incident report"
+      },
+      {
+        "method": "GET",
+        "path": "/compliance/:framework",
+        "description": "Get compliance status"
+      }
+    ]
+  },
+  "pricing": {
+    "model": "tiered",
+    "currency": "USD",
+    "tiers": [
+      {
+        "name": "starter",
+        "displayName": "Starter",
+        "priceMonthly": 29900,
+        "limits": { "endpoints": 50, "scansPerMonth": 100 },
+        "features": ["basic-scanning", "threat-alerts"]
+      },
+      {
+        "name": "professional",
+        "displayName": "Professional",
+        "priceMonthly": 99900,
+        "limits": { "endpoints": 500, "scansPerMonth": 1000 },
+        "features": ["advanced-detection", "incident-response", "compliance"],
+        "popular": true
+      },
+      {
+        "name": "enterprise",
+        "displayName": "Enterprise",
+        "priceMonthly": -1,
+        "limits": { "endpoints": -1, "scansPerMonth": -1 },
+        "features": ["soc-integration", "custom-rules", "24x7-monitoring"]
+      }
+    ]
+  },
+  "marketplace": {
+    "category": "security",
+    "subcategory": "threat-detection",
+    "featured": true,
+    "tags": ["security", "cybersecurity", "threat-detection", "compliance", "soc"]
+  }
+}

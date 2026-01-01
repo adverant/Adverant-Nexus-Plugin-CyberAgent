@@ -111,15 +111,13 @@ cyber.events.on('vulnerability.discovered', async (vuln) => {
 });
 ```
 
-### Results
+### Benefits
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Scan coverage | 65% | 100% | **+54%** |
-| Time to detection | 90 days | < 24 hours | **-99%** |
-| False positive rate | 35% | 3% | **-91%** |
-| Mean time to remediate | 45 days | 7 days | **-84%** |
-| Security team efficiency | Baseline | +280% | **+280%** |
+- **Improved scan coverage** through continuous monitoring
+- **Faster time to detection** with real-time analysis
+- **Reduced false positive rates** through AI-powered validation
+- **Faster remediation** via automated prioritization
+- **Increased security team efficiency** with automated workflows
 
 ---
 
@@ -254,15 +252,13 @@ report = client.reports.generate_pentest_report(
 print(f"\nReport generated: {report.download_url}")
 ```
 
-### Results
+### Benefits
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Testing frequency | Quarterly | Continuous | **+12x** |
-| Cost per assessment | $50,000 | $8,300/mo | **-83%** |
-| Findings per cycle | 25 | 180+ | **+620%** |
-| Time to report | 2 weeks | Instant | **-100%** |
-| Attack paths discovered | ~5 | ~45 | **+800%** |
+- **Continuous testing** instead of periodic assessments
+- **Reduced costs** compared to traditional pen testing
+- **More findings** through comprehensive automated scanning
+- **Instant reporting** for faster decision-making
+- **Broader attack path discovery** with AI-powered analysis
 
 ---
 
@@ -392,15 +388,13 @@ console.log(`Artifacts: ${evidencePackage.artifactCount}`);
 console.log(`Coverage: ${evidencePackage.controlCoverage}%`);
 ```
 
-### Results
+### Benefits
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Evidence collection time | 40 hours | 0 (automated) | **-100%** |
-| Compliance visibility | Annual | Real-time | **Continuous** |
-| Control coverage | 72% | 98% | **+36%** |
-| Audit preparation time | 2 weeks | 2 hours | **-99%** |
-| Compliance drift detection | Months | Minutes | **-99.9%** |
+- **Automated evidence collection** eliminating manual work
+- **Real-time compliance visibility** instead of point-in-time assessments
+- **Improved control coverage** across all frameworks
+- **Faster audit preparation** with pre-collected evidence
+- **Continuous compliance drift detection** instead of periodic reviews
 
 ---
 
@@ -572,15 +566,13 @@ async def generate_report(incident_id):
     return report
 ```
 
-### Results
+### Benefits
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| False positive rate | 85% | 8% | **-91%** |
-| Mean time to triage | 45 min | 30 sec | **-99%** |
-| Incidents handled/day | 50 | 500+ | **+900%** |
-| Containment time | 4 hours | 5 minutes | **-98%** |
-| Documentation completeness | 40% | 100% | **+150%** |
+- **Reduced false positive rates** through AI-powered analysis
+- **Faster triage** with automated incident classification
+- **Higher incident throughput** per analyst
+- **Faster containment** via automated response playbooks
+- **Complete documentation** for every incident
 
 ---
 
@@ -772,15 +764,13 @@ if (correlationResults.matches.length > 0) {
 }
 ```
 
-### Results
+### Benefits
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Intel sources integrated | 3 | 15+ | **+400%** |
-| Indicator correlation time | 2 hours | Real-time | **-99.9%** |
-| Threat detection lead time | Reactive | 48h proactive | **Proactive** |
-| False positives from intel | 45% | 8% | **-82%** |
-| Hunt query generation | Manual | Automated | **Automated** |
+- **Multiple intel sources integrated** through unified platform
+- **Real-time indicator correlation** across all feeds
+- **Proactive threat detection** with predictive analysis
+- **Reduced false positives** through context-aware filtering
+- **Automated hunt queries** based on threat intelligence
 
 ---
 
@@ -791,7 +781,7 @@ if (correlationResults.matches.length > 0) {
 | **AI Analysis** | Risk prioritization | Attack path discovery | Gap analysis | Incident classification | Correlation engine |
 | **Automation** | Continuous scanning | Continuous testing | Evidence collection | Auto-triage & contain | Feed aggregation |
 | **Integration** | ITSM ticketing | Report generation | GRC platforms | SIEM/EDR/SOAR | Multiple intel feeds |
-| **Time Savings** | 99% faster | 83% cost reduction | 99% less prep | 99% faster triage | Real-time correlation |
+| **Time Savings** | Faster scanning | Reduced costs | Less prep time | Faster triage | Real-time correlation |
 
 ---
 
